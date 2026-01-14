@@ -1,8 +1,25 @@
+using InvestSite.API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Options;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ===================================================
+// MongoSettings (EXISTE PARA NÃO QUEBRAR COMPILAÇÃO)
+// ===================================================
+builder.Services.Configure<MongoSettings>(
+    builder.Configuration.GetSection("MongoSettings")
+);
+
+// ===================================================
+// Services
+// ⚠️ Registrados, mas NÃO usados ainda
+// ===================================================
+builder.Services.AddScoped<MongoService>();
+builder.Services.AddScoped<FiiService>();
+builder.Services.AddScoped<AcaoService>();
 
 // ===================================================
 // Controllers
@@ -10,7 +27,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 
 // ===================================================
-// CORS (Netlify / qualquer origem)
+// CORS
 // ===================================================
 builder.Services.AddCors(options =>
 {
@@ -40,20 +57,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 var app = builder.Build();
 
 // ===================================================
-// HTTP PIPELINE
+// PIPELINE
 // ===================================================
 app.UseCors("AllowAll");
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-// ===================================================
-// Controllers
-// ===================================================
 app.MapControllers();
 
 // ===================================================
-// Health Check
+// Health check
 // ===================================================
 app.MapGet("/", () => Results.Ok(new
 {
@@ -67,3 +81,12 @@ var port = Environment.GetEnvironmentVariable("PORT") ?? "10000";
 app.Urls.Add($"http://0.0.0.0:{port}");
 
 app.Run();
+
+// ===================================================
+// MongoSettings (NECESSÁRIO PARA MongoService.cs)
+// ===================================================
+public class MongoSettings
+{
+    public string ConnectionString { get; set; } = string.Empty;
+    public string DatabaseName { get; set; } = string.Empty;
+}
