@@ -1,21 +1,47 @@
 using InvestSite.API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.Extensions.Options;
+using MongoDB.Driver;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ===================================================
-// MongoSettings (EXISTE PARA NÃO QUEBRAR COMPILAÇÃO)
+// MongoDB SETTINGS
 // ===================================================
 builder.Services.Configure<MongoSettings>(
     builder.Configuration.GetSection("MongoSettings")
 );
 
+// MongoClient (Singleton)
+builder.Services.AddSingleton<IMongoClient>(sp =>
+{
+    var settings = builder.Configuration
+        .GetSection("MongoSettings")
+        .Get<MongoSettings>();
+
+    if (settings == null || string.IsNullOrWhiteSpace(settings.ConnectionString))
+        throw new Exception("MongoSettings.ConnectionString não configurada");
+
+    return new MongoClient(settings.ConnectionString);
+});
+
+// MongoDatabase (Scoped)
+builder.Services.AddScoped<IMongoDatabase>(sp =>
+{
+    var client = sp.GetRequiredService<IMongoClient>();
+    var settings = builder.Configuration
+        .GetSection("MongoSettings")
+        .Get<MongoSettings>();
+
+    if (settings == null || string.IsNullOrWhiteSpace(settings.DatabaseName))
+        throw new Exception("MongoSettings.DatabaseName não configurado");
+
+    return client.GetDatabase(settings.DatabaseName);
+});
+
 // ===================================================
 // Services
-// ⚠️ Registrados, mas NÃO usados ainda
 // ===================================================
 builder.Services.AddScoped<MongoService>();
 builder.Services.AddScoped<FiiService>();
@@ -67,12 +93,22 @@ app.UseAuthorization();
 app.MapControllers();
 
 // ===================================================
-// Health check
+// Health Check
 // ===================================================
 app.MapGet("/", () => Results.Ok(new
 {
     status = "Backend OK 🚀 Render funcionando"
 }));
+
+// ===================================================
+// Teste Mongo
+// ===================================================
+app.MapGet("/api/test-mongo", async (IMongoDatabase db) =>
+{
+    var collections = await db.ListCollectionNamesAsync();
+    var names = await collections.ToListAsync();
+    return Results.Ok(new { ok = true, collections = names });
+});
 
 // ===================================================
 // Porta dinâmica (Render)
@@ -83,7 +119,7 @@ app.Urls.Add($"http://0.0.0.0:{port}");
 app.Run();
 
 // ===================================================
-// MongoSettings (NECESSÁRIO PARA MongoService.cs)
+// MongoSettings
 // ===================================================
 public class MongoSettings
 {
