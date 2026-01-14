@@ -1,20 +1,44 @@
 using InvestSite.API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using MongoDB.Driver;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ===================================================
-// MongoDB
+// MongoDB CONFIG
 // ===================================================
 builder.Services.Configure<MongoSettings>(
     builder.Configuration.GetSection("MongoSettings")
 );
 
-builder.Services.AddSingleton<MongoService>();
-builder.Services.AddSingleton<FiiService>();
-builder.Services.AddSingleton<AcaoService>();
+// MongoClient → Singleton (CORRETO)
+builder.Services.AddSingleton<IMongoClient>(sp =>
+{
+    var settings = builder.Configuration
+        .GetSection("MongoSettings")
+        .Get<MongoSettings>();
+
+    return new MongoClient(settings!.ConnectionString);
+});
+
+// IMongoDatabase → Scoped (CORRETO)
+builder.Services.AddScoped<IMongoDatabase>(sp =>
+{
+    var client = sp.GetRequiredService<IMongoClient>();
+    var settings = builder.Configuration
+        .GetSection("MongoSettings")
+        .Get<MongoSettings>();
+
+    return client.GetDatabase(settings!.DatabaseName);
+});
+
+// ===================================================
+// SERVICES (Scoped)
+// ===================================================
+builder.Services.AddScoped<FiiService>();
+builder.Services.AddScoped<AcaoService>();
 
 // ===================================================
 // Controllers
@@ -22,7 +46,7 @@ builder.Services.AddSingleton<AcaoService>();
 builder.Services.AddControllers();
 
 // ===================================================
-// Swagger (NATIVO / ESTÁVEL)
+// Swagger (APENAS DEV)
 // ===================================================
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -58,7 +82,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 var app = builder.Build();
 
 // ===================================================
-// Pipeline HTTP
+// PIPELINE
 // ===================================================
 app.UseCors("AllowAll");
 
@@ -71,13 +95,10 @@ if (app.Environment.IsDevelopment())
 app.UseAuthentication();
 app.UseAuthorization();
 
-// ===================================================
-// Controllers
-// ===================================================
 app.MapControllers();
 
 // ===================================================
-// Health check
+// Health Check
 // ===================================================
 app.MapGet("/", () => Results.Ok(new
 {
