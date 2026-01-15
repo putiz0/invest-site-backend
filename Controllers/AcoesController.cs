@@ -1,29 +1,30 @@
-using Microsoft.AspNetCore.Mvc;
+using InvestSite.API.Models;
 using InvestSite.API.Services;
+using Microsoft.AspNetCore.Mvc;
 
-namespace InvestSite.API.Controllers;
-
-[ApiController]
-[Route("api/acoes")]
-public class AcoesController : ControllerBase
+namespace InvestSite.API.Controllers
 {
-    private readonly AcaoService _service;
-
-    public AcoesController(AcaoService service)
+    [ApiController]
+    [Route("api/acoes")]
+    public class AcoesController : ControllerBase
     {
-        _service = service;
-    }
+        private readonly AcaoService _service;
 
-    [HttpGet("preco-teto")]
-    public IActionResult CalcularPrecoTeto(
-        double dividendos,
-        double lpa,
-        double vpa)
-    {
-        return Ok(new
+        public AcoesController(AcaoService service)
         {
-            Bazin = _service.PrecoTetoBazin(dividendos),
-            Graham = _service.PrecoTetoGraham(lpa, vpa)
-        });
+            _service = service;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Get()
+        {
+            return Ok(await _service.GetAllAsync());
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Post(Acao acao)
+        {
+            return Ok(await _service.CreateAsync(acao));
+        }
     }
 }

@@ -12,9 +12,26 @@ public class FiiService
         _fiis = mongo.Database.GetCollection<Fii>("fiis");
     }
 
-    public List<object> GetRanking()
+    // 🔹 LISTAR TODOS
+    public async Task<List<Fii>> GetAllAsync()
     {
-        var fiis = _fiis.Find(_ => true).ToList();
+        return await _fiis.Find(_ => true).ToListAsync();
+    }
+
+    // 🔹 CRIAR
+    public async Task<Fii> CreateAsync(Fii fii)
+    {
+        await _fiis.InsertOneAsync(fii);
+        return fii;
+    }
+
+    // 🔹 RANKING (DY + P/VP)
+    public async Task<List<object>> GetRankingAsync()
+    {
+        var fiis = await _fiis.Find(_ => true).ToListAsync();
+
+        if (!fiis.Any())
+            return new List<object>();
 
         var maxDY = fiis.Max(f => f.DividendYield);
         var minPVP = fiis.Min(f => f.PVP);

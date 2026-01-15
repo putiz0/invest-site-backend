@@ -1,17 +1,24 @@
 using InvestSite.API.Models;
+using MongoDB.Driver;
 
-namespace InvestSite.API.Services;
-
-public class AcaoService
+namespace InvestSite.API.Services
 {
-    public double PrecoTetoBazin(double dividendos)
+    public class AcaoService
     {
-        return dividendos * 16.67;
-    }
+        private readonly IMongoCollection<Acao> _acoes;
 
-    public double PrecoTetoGraham(double lpa, double vpa)
-    {
-        return Math.Sqrt(22.5 * lpa * vpa);
+        public AcaoService(MongoService mongo)
+        {
+            _acoes = mongo.Database.GetCollection<Acao>("acoes");
+        }
+
+        public async Task<List<Acao>> GetAllAsync() =>
+            await _acoes.Find(_ => true).ToListAsync();
+
+        public async Task<Acao> CreateAsync(Acao acao)
+        {
+            await _acoes.InsertOneAsync(acao);
+            return acao;
+        }
     }
 }
- 

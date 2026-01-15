@@ -1,3 +1,4 @@
+using InvestSite.API.Models;
 using InvestSite.API.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,9 +15,27 @@ public class FiisController : ControllerBase
         _service = service;
     }
 
-    [HttpGet("ranking")]
-    public IActionResult GetRanking()
+    // 🔹 GET /api/fiis
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
     {
-        return Ok(_service.GetRanking());
+        var fiis = await _service.GetAllAsync();
+        return Ok(fiis);
+    }
+
+    // 🔹 POST /api/fiis
+    [HttpPost]
+    public async Task<IActionResult> Create(Fii fii)
+    {
+        var created = await _service.CreateAsync(fii);
+        return Ok(created);
+    }
+
+    // 🔹 GET /api/fiis/ranking
+    [HttpGet("ranking")]
+    public async Task<IActionResult> Ranking()
+    {
+        var ranking = await _service.GetRankingAsync();
+        return Ok(ranking);
     }
 }

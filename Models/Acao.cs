@@ -9,6 +9,7 @@ public class Acao
     [BsonRepresentation(BsonType.ObjectId)]
     public string? Id { get; set; }
 
+    public string Nome { get; set;} = string.Empty;
     public string Ticker { get; set; } = string.Empty;
     public double DividendosAnuais { get; set; }
     public double LPA { get; set; }
